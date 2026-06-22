@@ -4497,17 +4497,22 @@ async def on_command_error(ctx, error):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == '__main__':
-    while True:
-        try:
-            log.info('Iniciando bot v3...')
-            bot.run(TOKEN, reconnect=True)
-        except discord.LoginFailure:
-            log.critical('TOKEN INVÁLIDO.')
-            sys.exit(1)
-        except KeyboardInterrupt:
-            log.info('Detenido por el usuario.')
-            sys.exit(0)
-        except Exception:
-            log.error(f'Error crítico:\n{traceback.format_exc()}')
-            log.info('Reiniciando en 5s...')
-            time.sleep(5)
+    try:
+        log.info('Iniciando bot v3...')
+        bot.run(TOKEN, reconnect=True)
+    except discord.LoginFailure:
+        log.critical('TOKEN INVÁLIDO.')
+        sys.exit(1)
+    except KeyboardInterrupt:
+        log.info('Detenido por el usuario.')
+        sys.exit(0)
+    except Exception:
+        # NOTA: no se puede volver a llamar bot.run() sobre la misma instancia
+        # de `bot` (discord.py cierra su sesión de aiohttp al salir y no la
+        # vuelve a crear), por eso el reintento causaba "RuntimeError: Session
+        # is closed". En vez de reintentar en el mismo proceso, reiniciamos
+        # el proceso completo de Python: eso crea un `bot` nuevo desde cero.
+        log.error(f'Error crítico:\n{traceback.format_exc()}')
+        log.info('Reiniciando proceso en 5s...')
+        time.sleep(5)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
